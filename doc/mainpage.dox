@@ -1,0 +1,44 @@
+/** @mainpage OmniPano
+
+@author Jim Susinno
+
+@date July 2013
+
+
+OmniPano is a simple app for viewing omni-stereoscopic-panoramic images on the Oculus Rift.
+
+Thank you to http://code.google.com/p/jpgd/ for providing Jpeg support.
+
+@section quickstart Quick Start
+<ul>
+<li>Place <strong>over/under format JPEGs</strong> (e.g. http://i.imgur.com/bBxCVWM.jpg) in a directory named <strong>panos/</strong>
+<li><strong>Right Click</strong> to cycle images in the list
+<li><strong>Mouse Wheel</strong> to expand horizontal field of view
+<li><strong>Z and X keys</strong> to adjust L/R image displacement(depth tweak)
+</ul>
+
+@section description Description
+On launch, the app will look for a directory named "panos" starting with ./ then successively checking ../
+up to five levels deep. The first time it finds any filenames that match *.JPG or *.jpg, it will load
+the first one as an over/under format stereoscopic panoramic image and display it in the Rift. The panorama pair
+is displayed on the inside of a pair of identical cylinders centered on the user; one for each eye. Simply looking around
+the scene should provide a sense of immersion.
+
+I've added functionality to compress the horizontal field of view within the visual field, i.e. fisheye view.
+To see more of the world at once, use the mouse wheel. The view direction will still be updated by the
+orientation of the HMD, but being able to see all around you means less need to turn your head.
+
+
+The stereo parameters have been tweaked for the image at
+http://i.imgur.com/bBxCVWM.jpg
+courtesy NASA via WormSlayer
+http://www.reddit.com/r/oculus/comments/1dpnir/stereoscopic_panorama_from_curiosity_on_mars/ .
+The Z and X keys adjust stereo displacement to tweak the pair for comfort within the stereo depth range.
+There are a bunch of other keyboard inputs to control image sizes and displacements, etc.: see the function
+void GLFWCALL keyhandler(int key, int action) at line 182 of simple_glfw_skeleton.cpp for details.
+There's code in there to try and apply some adjustment to minimize the discomfort of head tilt(rotation about forward/z axis), but I now think that this idea is futile.
+
+@todo The ceiling looks like garbage.
+
+
+*/

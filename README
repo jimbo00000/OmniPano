@@ -1,0 +1,12 @@
+OmniPano
+Omnidirectional Stereoscopic Panorama Viewer for Oculus Rift
+v0.1.0
+
+Instructions:
+ - Place over/under format JPEGs</strong> (e.g. http://i.imgur.com/bBxCVWM.jpg) in a directory named panos/
+ - Right Click to cycle images in the list
+ - Mouse Wheel to expand horizontal field of view
+ - Z and X keys to adjust L/R image displacement(depth tweak)
+
+Thanks to WormSlayer and NASA for the excellent stereo of panorama of Mars
+Thanks to Rich Geldreich for JPEG code at http://code.google.com/p/jpgd/
