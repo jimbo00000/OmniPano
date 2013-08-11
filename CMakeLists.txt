@@ -54,7 +54,6 @@ ELSEIF( UNIX )
         -pthread
         -ludev
         -lrt
-        #libovr.a
         )
 ENDIF()
 
@@ -104,10 +103,13 @@ ADD_LIBRARY( Jpeg       ${JPEG_COMPRESSOR_SOURCE_FILES} )
 ADD_EXECUTABLE( ${PROJECT_NAME}
     ${SOURCE_FILES}
     src/skeleton/simple_glfw_skeleton.cpp
-)
+    )
 
-TARGET_LINK_LIBRARIES(
-    ${PROJECT_NAME}
-    VectorMath OVRkill Util Panorama Jpeg
+TARGET_LINK_LIBRARIES( ${PROJECT_NAME}
+    OVRkill
+    Util
+    VectorMath
+    Panorama
+    Jpeg
     ${PLATFORM_LIBS}
     )
