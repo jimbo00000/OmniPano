@@ -58,6 +58,7 @@
 #ifndef DIRENT_H
 #define DIRENT_H
 
+#ifdef _WIN32
 #include <windows.h>
 #include <string.h>
 #include <assert.h>
@@ -226,5 +227,6 @@ static void rewinddir(DIR* dirp)
    dirp->cached = 1;
 }
 
+#endif /* _WIN32 */
 
 #endif /*DIRENT_H*/

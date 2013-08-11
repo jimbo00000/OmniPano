@@ -26,12 +26,36 @@ IF( WIN32 )
     INCLUDE_DIRECTORIES( "${OCULUSSDK_ROOT}/LibOVR/Src" )
     LINK_DIRECTORIES   ( "${OCULUSSDK_ROOT}/LibOVR/Lib/Win32" )
 
-    SET( PLATFORM_LIBS glfw.lib opengl32.lib glu32.lib glew32.lib 
+    SET( PLATFORM_LIBS
+        glfw.lib
+        opengl32.lib
+        glu32.lib
+        glew32.lib 
         libovr.lib
         winmm.lib
         )
 
     SOURCE_GROUP( "Build" FILES CMakeLists.txt )
+
+ELSEIF( UNIX )
+    ADD_DEFINITIONS( -D_LINUX )
+    SET( LIBS_HOME "~/lib" )
+    
+    SET( OCULUSSDK_ROOT "${LIBS_HOME}/OculusSDK" )
+    INCLUDE_DIRECTORIES( "${OCULUSSDK_ROOT}/LibOVR/Include" )
+    INCLUDE_DIRECTORIES( "${OCULUSSDK_ROOT}/LibOVR/Src" )
+    LINK_DIRECTORIES   ( "${OCULUSSDK_ROOT}/LibOVR/Lib/Linux/Debug/x86_64" )
+    
+    SET( PLATFORM_LIBS
+        -lovr
+        -lGLEW 
+        -lGLU
+        -lglfw
+        -pthread
+        -ludev
+        -lrt
+        #libovr.a
+        )
 ENDIF()
 
 
@@ -71,9 +95,9 @@ INCLUDE_DIRECTORIES("src/OVRkill")
 INCLUDE_DIRECTORIES("src/Panorama")
 INCLUDE_DIRECTORIES("src/jpeg-compressor")
 
-ADD_LIBRARY( Util       ${UTIL_SOURCE_FILES} )
 ADD_LIBRARY( VectorMath ${VECTORMATH_SOURCE_FILES} )
 ADD_LIBRARY( OVRkill    ${OVRKILL_SOURCE_FILES} )
+ADD_LIBRARY( Util       ${UTIL_SOURCE_FILES} )
 ADD_LIBRARY( Panorama   ${PANORAMA_SOURCE_FILES} )
 ADD_LIBRARY( Jpeg       ${JPEG_COMPRESSOR_SOURCE_FILES} )
 
@@ -84,6 +108,6 @@ ADD_EXECUTABLE( ${PROJECT_NAME}
 
 TARGET_LINK_LIBRARIES(
     ${PROJECT_NAME}
-    Util VectorMath OVRkill Panorama Jpeg
+    VectorMath OVRkill Util Panorama Jpeg
     ${PLATFORM_LIBS}
     )
