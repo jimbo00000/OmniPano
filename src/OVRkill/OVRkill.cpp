@@ -125,7 +125,7 @@ void OVRkill::PresentFbo_NoDistortion()
             0,0,
         };
         const unsigned int tris[] = {
-            0,1,2, 0,3,2, // ccw
+            0,2,1, 0,3,2, // ccw
         };
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
