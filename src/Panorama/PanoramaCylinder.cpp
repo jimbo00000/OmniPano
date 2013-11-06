@@ -224,7 +224,7 @@ void PanoramaCylinder::_ConstructCylinderGeometry(float coverage)
     std::vector<unsigned int>& inds  = m_cylinderIdxs;
 
     const int slices = m_numSlices;
-    const int stacks = 1;
+    const int stacks = 32;
     const float height = m_cylHeight;
     const float radius = m_cylRadius;
 
@@ -249,7 +249,19 @@ void PanoramaCylinder::_ConstructCylinderGeometry(float coverage)
             float t = (float)j/(float)stacks;
             float h = (1-t)*hmin + t*hmax;
             xzvec.y = h;
+
+#if 1
+            /// Scale radius by height with fattest part at y == 0.5
+            const float x = t - 0.5f;
+            const float sphereFactor = 2.0f * sqrt(0.25f - fabs(x*x));
+            float3 sphericalXzvec(xzvec);
+            sphericalXzvec.x *= sphereFactor;
+            sphericalXzvec.z *= sphereFactor;
+            verts.push_back(sphericalXzvec);
+#else
             verts.push_back(xzvec);
+#endif
+
 
             float tscale = 1.0f;
             float2 c = {
@@ -329,6 +341,13 @@ void PanoramaCylinder::_ConstructCapGeometry()
 ///@param isLeft Set to true if rendering for left eye, false for right eye
 void PanoramaCylinder::DrawPanoramaGeometry(bool isLeft, float vMove, float vEyeYaw) const
 {
+
+#if 1
+    ///@todo Losing half the screen in Rift mode - a triangle is out-of-order
+    glLineWidth(4.0f);
+    glPolygonMode(GL_BACK, GL_LINE);
+#endif
+
     glBindBuffer(GL_ARRAY_BUFFER, m_cylV);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glBindBuffer(GL_ARRAY_BUFFER, m_cylT);
