@@ -44,17 +44,23 @@ ELSEIF( UNIX )
     SET( OCULUSSDK_ROOT "${LIBS_HOME}/OculusSDK" )
     INCLUDE_DIRECTORIES( "${OCULUSSDK_ROOT}/LibOVR/Include" )
     INCLUDE_DIRECTORIES( "${OCULUSSDK_ROOT}/LibOVR/Src" )
-    LINK_DIRECTORIES   ( "${OCULUSSDK_ROOT}/LibOVR/Lib/Linux/Debug/x86_64" )
-    
+    #LINK_DIRECTORIES   ( "${OCULUSSDK_ROOT}/LibOVR/Lib/Linux/Debug/x86_64" )
+    LINK_DIRECTORIES   ( "${OCULUSSDK_ROOT}/LibOVR/Lib/Linux/Release/x86_64/" )
+
     SET( PLATFORM_LIBS
         -lovr
-        -lGLEW 
-        -lGLU
-        -lglfw
+        -lGLEW
+        -lGLU -lglfw
         -pthread
         -ludev
         -lrt
+        -lXinerama
+        -lXrandr
+        -lXxf86vm
+        -lXi
+        ${ANT_LIBS}
         )
+
 ENDIF()
 
 
