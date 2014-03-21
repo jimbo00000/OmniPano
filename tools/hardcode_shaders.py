@@ -24,8 +24,14 @@ def generateSourceFile():
 			print >>outStream, "/* Directory", shaderPath, "does not exist. */"
 		return
 
+	# Create autogen/ if it's not there.
+	if not os.path.isdir(autogenDir):
+		os.makedirs(autogenDir)
+
 	shaderList = os.listdir(shaderPath)
+	# filter out some extraneous results: directories, svn files...
 	shaderList = [s for s in shaderList if s != '.svn']
+	shaderList = [s for s in shaderList if not os.path.isdir(shaderPath + s)]
 	for shaderName in shaderList:
 		print shaderName
 
