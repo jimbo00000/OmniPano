@@ -464,7 +464,10 @@ void display()
 
     glDisable(GL_LIGHTING);
     glDisable(GL_DEPTH_TEST);
-    g_ok.PresentFbo();
+
+    OVRkill::PostProcessType post = OVRkill::PostProcess_None;
+    RiftDistortionParams  riftDist;
+    g_ok.PresentFbo(post, riftDist);
 
     glfwSwapBuffers();
 }
@@ -647,7 +650,7 @@ int main(int argc, char *argv[])
     OpenGL_initialization();
     LOG_INFO("Initializing shaders.");
     g_ok.CreateShaders();
-    g_ok.CreateRenderBuffer();
+    g_ok.CreateRenderBuffer(1.71f);
 
 
     InitPano(argc, argv);
