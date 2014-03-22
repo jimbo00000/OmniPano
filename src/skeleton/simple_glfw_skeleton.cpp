@@ -5,6 +5,9 @@
 #  define WINDOWS_LEAN_AND_MEAN
 #  define NOMINMAX
 #  include <windows.h>
+#  include "win/dirent.h"
+#else
+#  include <dirent.h>
 #endif
 
 #define _USE_MATH_DEFINES
@@ -30,7 +33,6 @@
 #include "OVRkill/OVRkill.h"
 #include "PanoramaPatch.h"
 
-#include "dirent.h"
 #include <iostream>
 
 /// Hope you like global variables!
@@ -488,7 +490,7 @@ void GLFWCALL reshape(int w, int h)
 std::vector<std::string> GetFileList(const std::string& datadir)
 {
     std::vector<std::string> panoFiles;
-#if 0
+
     /// Thank you Toni Ronkko for the dirent Windows compatibility layer.
     /// http://stackoverflow.com/questions/612097/how-can-i-get-a-list-of-files-in-a-directory-using-c-or-c
     DIR* dir;
@@ -517,7 +519,7 @@ std::vector<std::string> GetFileList(const std::string& datadir)
         }
         closedir(dir);
     }
-#endif
+
     return panoFiles;
 }
 
