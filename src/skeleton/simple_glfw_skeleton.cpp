@@ -488,7 +488,7 @@ void GLFWCALL reshape(int w, int h)
 std::vector<std::string> GetFileList(const std::string& datadir)
 {
     std::vector<std::string> panoFiles;
-
+#if 0
     /// Thank you Toni Ronkko for the dirent Windows compatibility layer.
     /// http://stackoverflow.com/questions/612097/how-can-i-get-a-list-of-files-in-a-directory-using-c-or-c
     DIR* dir;
@@ -517,6 +517,7 @@ std::vector<std::string> GetFileList(const std::string& datadir)
         }
         closedir(dir);
     }
+#endif
     return panoFiles;
 }
 
@@ -598,7 +599,9 @@ int main(int argc, char *argv[])
 
     bool fullScreen = false;
 
+#ifdef _WIN32
     if (!IsDebuggerPresent()) ///< Ctrl-F5 to run in Rift mode,  just F5 for windowed
+#endif
     {
         fullScreen = true;
     }
