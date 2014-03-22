@@ -21,11 +21,11 @@ GLuint makeShaderFromSource(const char* source, const unsigned long Type)
     return shaderId;
 }
 
-/// Create a shader program from the OVR sources.
-GLuint CreateOVRShaders()
+/// Create a shader program from vertex and fragment shader sources.
+GLuint BuildShader(const char* pVertSrc, const char* pFragSrc)
 {
-    GLuint vertSrc = makeShaderFromSource(PostProcessVertexShaderSrc, GL_VERTEX_SHADER);
-    GLuint fragSrc = makeShaderFromSource(PostProcessFragShaderSrc, GL_FRAGMENT_SHADER);
+    GLuint vertSrc = makeShaderFromSource(pVertSrc, GL_VERTEX_SHADER);
+    GLuint fragSrc = makeShaderFromSource(pFragSrc, GL_FRAGMENT_SHADER);
 
     printShaderInfoLog(vertSrc);
     printShaderInfoLog(fragSrc);
@@ -50,15 +50,15 @@ GLuint CreateOVRShaders()
 }
 
 
-
+///@note Remember that initialization here depends on GL context state.
+/// Shaders and buffers are created later.
 OVRkill::OVRkill()
 : m_pManager(NULL)
 , m_pHMD(NULL)
 , m_pSensor(NULL)
-, m_SFusion()
+, m_pSFusion(NULL)
 , m_HMDInfo()
 , m_SConfig()
-, m_PostProcess(PostProcess_Distortion)
 , m_fboWidth(0)
 , m_fboHeight(0)
 , m_progRiftDistortion(0)
@@ -70,12 +70,14 @@ OVRkill::OVRkill()
 
 OVRkill::~OVRkill()
 {
+    //if (m_pSFusion)
+    //    delete m_pSFusion;
     DestroyOVR();
 }
 
 void OVRkill::DestroyOVR()
 {
-    /// Clear these before calling Destroy.
+    // Clear these before calling Destroy.
     m_pSensor.Clear();
     m_pManager.Clear();
     m_pHMD.Clear();
@@ -86,26 +88,31 @@ void OVRkill::DestroyOVR()
 /// We need an active GL context for this
 void OVRkill::CreateShaders()
 {
-    m_progPresFbo = makeShaderByName("presentFbo");
-    m_progRiftDistortion = CreateOVRShaders();
+    m_progPresFbo        = BuildShader(PresentFboVertSrc         , PresentFboFragSrc);
+    m_progRiftDistortion = BuildShader(PostProcessVertexShaderSrc, PostProcessFragShaderSrc);
 }
 
-void OVRkill::CreateRenderBuffer()
+/// We need an active GL context for this
+void OVRkill::CreateRenderBuffer(float bufferScaleUp)
 {
+    deallocateFBO(m_renderBuffer);
+
+    m_fboWidth = (int)((bufferScaleUp) * (float)m_windowWidth );
+    m_fboHeight = (int)((bufferScaleUp) * (float)m_windowHeight );
     allocateFBO(m_renderBuffer, m_fboWidth, m_fboHeight);
 }
 
-void OVRkill::BindRenderBuffer()
+void OVRkill::BindRenderBuffer() const
 {
     bindFBO(m_renderBuffer);
 }
 
-void OVRkill::UnBindRenderBuffer()
+void OVRkill::UnBindRenderBuffer() const
 {
     unbindFBO();
 }
 
-void OVRkill::PresentFbo_NoDistortion()
+void OVRkill::PresentFbo_NoDistortion() const
 {
     glUseProgram(m_progPresFbo);
     {
@@ -125,14 +132,18 @@ void OVRkill::PresentFbo_NoDistortion()
             0,0,
         };
         const unsigned int tris[] = {
-            0,2,1, 0,3,2, // ccw
+            0,1,2, 0,3,2, // ccw
         };
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, verts);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texs);
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
+        
+        int posAttrib =  glGetAttribLocation(m_progPresFbo, "vPosition");
+        int texAttrib =  glGetAttribLocation(m_progPresFbo, "vTex");
+        
+        glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, verts);
+        glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 0, texs);
+        glEnableVertexAttribArray(posAttrib);
+        glEnableVertexAttribArray(texAttrib);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_renderBuffer.tex);
@@ -142,13 +153,16 @@ void OVRkill::PresentFbo_NoDistortion()
                        6,
                        GL_UNSIGNED_INT,
                        &tris[0]);
+
+        glDisableVertexAttribArray(posAttrib);
+        glDisableVertexAttribArray(texAttrib);
     }
     glUseProgram(0);
 }
 
-
-
-void OVRkill::PresentFbo_PostProcessDistortion(const OVR::Util::Render::StereoEyeParams& eyeParams)
+void OVRkill::PresentFbo_PostProcessDistortion(
+    const OVR::Util::Render::StereoEyeParams& eyeParams,
+    const RiftDistortionParams& distParams) const
 {
     const OVR::Util::Render::DistortionConfig*  pDistortion = eyeParams.pDistortion;
     if (pDistortion == NULL)
@@ -156,7 +170,7 @@ void OVRkill::PresentFbo_PostProcessDistortion(const OVR::Util::Render::StereoEy
 
     glUseProgram(m_progRiftDistortion);
     {
-        /// Set uniforms
+        // Set uniforms for distortion shader
         OVR::Matrix4f ident;
         glUniformMatrix4fv(getUniLoc(m_progRiftDistortion, "View"), 1, false, &ident.Transposed().M[0][0]);
         glUniformMatrix4fv(getUniLoc(m_progRiftDistortion, "Texm"), 1, false, &ident.Transposed().M[0][0]);
@@ -166,51 +180,42 @@ void OVRkill::PresentFbo_PostProcessDistortion(const OVR::Util::Render::StereoEy
         //"uniform vec2 Scale;\n"
         //"uniform vec2 ScaleIn;\n"
         //"uniform vec4 HmdWarpParam;\n"
-        
-        /// this value ripped from the TinyRoom demo at runtime
-        const float lensOff = 0.287994f - 0.25f;
 
-        /// The left screen is centered at (0.25, 0.5)
+        // The left screen is centered at (0.25, 0.5)
         glUniform2f(getUniLoc(m_progRiftDistortion, "LensCenter"),
-            //pDistortion->XCenterOffset,
-            //pDistortion->YCenterOffset
-            0.25f + lensOff, 0.5f);
+            distParams.LensCenterX + distParams.lensOff, distParams.LensCenterY);
 
         glUniform2f(getUniLoc(m_progRiftDistortion, "ScreenCenter"),
-            0.25f, 0.5f);
+            distParams.ScreenCenterX, distParams.ScreenCenterY);
 
-        /// The right screen is centered at (0.75, 0.5)
+        // The right screen is centered at (0.75, 0.5)
         if (eyeParams.Eye == OVR::Util::Render::StereoEye_Right)
         {
-            glUniform2f(getUniLoc(m_progRiftDistortion, "ScreenCenter"),
-                0.75f, 0.5f);
-            
             glUniform2f(getUniLoc(m_progRiftDistortion, "LensCenter"),
-                0.75f - lensOff, 0.5f);
+                1.0f - (distParams.LensCenterX + distParams.lensOff), distParams.LensCenterY);
+
+            glUniform2f(getUniLoc(m_progRiftDistortion, "ScreenCenter"),
+                1.0f - distParams.ScreenCenterX, distParams.ScreenCenterY);
         }
         
         glUniform2f(getUniLoc(m_progRiftDistortion, "Scale"),
-            //pDistortion->Scale,
-            //pDistortion->Scale
-            0.145806f,  0.233290f);
+            distParams.ScaleX,  distParams.ScaleY);
 
         glUniform2f(getUniLoc(m_progRiftDistortion, "ScaleIn"),
-            //pDistortion->Scale,
-            //pDistortion->Scale
-            4.0f, 2.5f);
+            distParams.ScaleInX, distParams.ScaleInY);
 
         glUniform4f(getUniLoc(m_progRiftDistortion, "HmdWarpParam"),
-            pDistortion->K[0],
-            pDistortion->K[1],
-            pDistortion->K[2],
-            pDistortion->K[3]
+            distParams.DistScale * pDistortion->K[0],
+            distParams.DistScale * pDistortion->K[1],
+            distParams.DistScale * pDistortion->K[2],
+            distParams.DistScale * pDistortion->K[3]
         );
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_renderBuffer.tex);
         glUniform1i(getUniLoc(m_progRiftDistortion, "Texture0"), 0);
 
-        float verts[] = { /// Left eye coords
+        float verts[] = { // Left eye coords
             -1.0f, -1.0f,
              0.0f, -1.0f,
              0.0f,  1.0f,
@@ -223,7 +228,7 @@ void OVRkill::PresentFbo_PostProcessDistortion(const OVR::Util::Render::StereoEy
             0.0f, 0.0f,
         };
 
-        /// Adjust coords for right eye
+        // Adjust coords for right eye
         if (eyeParams.Eye == OVR::Util::Render::StereoEye_Right)
         {
             verts[2*0  ] += 1.0f;
@@ -237,36 +242,37 @@ void OVRkill::PresentFbo_PostProcessDistortion(const OVR::Util::Render::StereoEy
             texs[2*3] += 0.5f;
         }
 
-
         const unsigned int tris[] = {
             0,1,2,  0,2,3, // ccw
         };
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, verts);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, texs);
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
+        
+        int posAttrib =  glGetAttribLocation(m_progPresFbo, "vPosition");
+        int texAttrib =  glGetAttribLocation(m_progPresFbo, "vTex");
+        
+        glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, verts);
+        glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 0, texs);
+        glEnableVertexAttribArray(posAttrib);
+        glEnableVertexAttribArray(texAttrib);
 
         glDrawElements(GL_TRIANGLES,
                        6,
                        GL_UNSIGNED_INT,
                        &tris[0]);
+
+        glDisableVertexAttribArray(posAttrib);
+        glDisableVertexAttribArray(texAttrib);
     }
     glUseProgram(0);
 }
 
-void OVRkill::PresentFbo()
+void OVRkill::PresentFbo(PostProcessType post, const RiftDistortionParams& distParams) const
 {
-    if (m_PostProcess == PostProcess_Distortion)
+    if (post == PostProcess_Distortion)
     {
-        const OVR::Util::Render::StereoEyeParams& LeyeParams =
-            m_SConfig.GetEyeRenderParams(OVR::Util::Render::StereoEye_Left);
-        PresentFbo_PostProcessDistortion(LeyeParams);
-        
-        const OVR::Util::Render::StereoEyeParams& ReyeParams =
-            m_SConfig.GetEyeRenderParams(OVR::Util::Render::StereoEye_Right);
-        PresentFbo_PostProcessDistortion(ReyeParams);
+        PresentFbo_PostProcessDistortion(m_LeyeParams, distParams);
+        PresentFbo_PostProcessDistortion(m_ReyeParams, distParams);
     }
     else
     {
@@ -274,36 +280,41 @@ void OVRkill::PresentFbo()
     }
 }
 
+void OVRkill::UpdateEyeParams()
+{
+    m_LeyeParams = m_SConfig.GetEyeRenderParams(OVR::Util::Render::StereoEye_Left);
+    m_ReyeParams = m_SConfig.GetEyeRenderParams(OVR::Util::Render::StereoEye_Right);
+}
 
-/// Init OVR
+/// Call OVR setup routines to get HMD info from the first available HMD.
 void OVRkill::InitOVR()
 {
     OVR::System::Init(OVR::Log::ConfigureDefaultLog(OVR::LogMask_All));
+    m_pSFusion = new OVR::SensorFusion;
     m_pManager = *OVR::DeviceManager::Create();
     m_pHMD  = *m_pManager->EnumerateDevices<OVR::HMDDevice>().CreateDevice();
     if (m_pHMD == NULL)
     {
-        /// If the HMD is turned off or not present, fill in some halfway sensible
-        /// default values here so we can at least see some rendering.
-        ///@todo Grab these values from the HMD setup, see how we did on guesing
+        // These default values were copied from the Rift DK1 and will be
+        // used when no Rift is present so output looks sane.
         OVR::HMDInfo& hmd = m_HMDInfo;
         hmd.DesktopX = 0;
         hmd.DesktopY = 0;
         hmd.HResolution = 1280;
         hmd.VResolution = 800;
 
-        hmd.HScreenSize = 0.09f;
-        hmd.VScreenSize = 0.06f;
-        hmd.VScreenCenter = 0.02f;
+        hmd.HScreenSize = 0.14975999f;
+        hmd.VScreenSize = 0.093599997f;
+        hmd.VScreenCenter = 0.046799999f;
 
         hmd.DistortionK[0] = 1.0f;
         hmd.DistortionK[1] = 0.5f;
         hmd.DistortionK[2] = 0.25f;
         hmd.DistortionK[3] = 0.0f;
 
-        hmd.EyeToScreenDistance = 0.01f;
+        hmd.EyeToScreenDistance = 0.041000001f;
         hmd.InterpupillaryDistance = 0.064f;
-        hmd.LensSeparationDistance = 0.07f;
+        hmd.LensSeparationDistance = 0.063500002f;
     }
     else
     {
@@ -322,7 +333,7 @@ void OVRkill::InitOVR()
             // We need to attach sensor to SensorFusion object for it to receive 
             // body frame messages and update orientation. SFusion.GetOrientation() 
             // is used in OnIdle() to orient the view.
-            m_SFusion.AttachToSensor(m_pSensor);
+            m_pSFusion->AttachToSensor(m_pSensor);
             //SFusion.SetDelegateMessageHandler(this);
             //SFusion.SetPredictionEnabled(true);
         }
@@ -350,8 +361,8 @@ void OVRkill::InitOVR()
             m_SConfig.SetDistortionFitPointVP(0.0f, 1.0f);
     }
     m_SConfig.Set2DAreaFov(OVR::DegreeToRad(85.0f));
-    
-    /// For OVR distortion correction shader
+
+    // For OVR distortion correction shader
     const float renderBufferScaleIncrease = m_SConfig.GetDistortionScale();
     m_fboWidth = (int)((renderBufferScaleIncrease) * (float)m_windowWidth );
     m_fboHeight = (int)((renderBufferScaleIncrease) * (float)m_windowHeight );
@@ -365,17 +376,14 @@ void OVRkill::SetDisplayMode(DisplayMode mode)
     default:
     case SingleEye:
         m_SConfig.SetStereoMode(OVR::Util::Render::Stereo_None);
-        m_PostProcess = PostProcess_None;
         break;
 
     case Stereo:
         m_SConfig.SetStereoMode(OVR::Util::Render::Stereo_LeftRight_Multipass);
-        m_PostProcess = PostProcess_None;
         break;
 
     case StereoWithDistortion:
         m_SConfig.SetStereoMode(OVR::Util::Render::Stereo_LeftRight_Multipass);
-        m_PostProcess = PostProcess_Distortion;
         break;
     }
 }
