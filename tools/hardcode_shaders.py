@@ -28,15 +28,16 @@ def generateSourceFile():
 	if not os.path.isdir(autogenDir):
 		os.makedirs(autogenDir)
 
+	print "hardcode_shaders.py writing the following shaders to",autogenDir,":"
 	shaderList = os.listdir(shaderPath)
 	# filter out some extraneous results: directories, svn files...
 	shaderList = [s for s in shaderList if s != '.svn']
 	shaderList = [s for s in shaderList if not os.path.isdir(shaderPath + s)]
 	for shaderName in shaderList:
-		print shaderName
+		print "    hardcoding shader:", shaderName
 
 	tab = "    "
-	decl = "char* "
+	decl = "const char* "
 	newline = "\\n"
 	quote = "\""
 

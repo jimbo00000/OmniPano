@@ -3,6 +3,14 @@ PROJECT( OmniPano )
 
 INCLUDE(cmake_modules/HardcodeShaders.cmake)
 
+# GLFW, SDL
+SET( GL_FRAMEWORK "GLFW" CACHE STRING "Which OpenGL windowing framework to use" )
+
+# Control linking to AntTweakBar by toggling a config flag.
+# @todo Write or find a "FindXXX.cmake" script to search typical install locations
+# on the build machine and link the libraries in.
+SET( USE_ANTTWEAKBAR TRUE CACHE BOOL "Use AntTweakBar" )
+
 #
 # Platform-dependent section
 #
@@ -10,47 +18,172 @@ IF( WIN32 )
     #
     # Custom Windows include and link dirs for my machine:
     #
-    SET( LIBS_HOME "C:/lib" )
+    SET( LIBS_HOME "C:/lib" CACHE STRING "Location of support libraries Glut, Glew and others"  )
 
-    SET( GLFW_ROOT "${LIBS_HOME}/glfw-2.7.8.bin.WIN32" )
-    INCLUDE_DIRECTORIES( "${GLFW_ROOT}/include" )
-    LINK_DIRECTORIES   ( "${GLFW_ROOT}/lib-msvc100" )
+    SET( GLM_ROOT "${LIBS_HOME}/glm-0.9.5.4/glm" )
+    INCLUDE_DIRECTORIES( "${GLM_ROOT}" )
+    ADD_DEFINITIONS( -DGLM_FORCE_RADIANS )
+
+    IF( GL_FRAMEWORK STREQUAL "GLFW" )
+        MESSAGE("Using GLFW Framework.")
+        SET( GLFW3_ROOT "${LIBS_HOME}/glfw-3.0.1.bin.WIN32" CACHE STRING "glfw root" )
+        INCLUDE_DIRECTORIES( "${GLFW3_ROOT}/include" )
+        LINK_DIRECTORIES   ( "${GLFW3_ROOT}/lib-msvc100" )
+        SET( FRAMEWORK_LIBS glfw3.lib )
+    ELSEIF( GL_FRAMEWORK STREQUAL "SDL" )
+        MESSAGE("Using SDL2 Framework.")
+        SET( SDL2_ROOT "${LIBS_HOME}/SDL2-2.0.3" CACHE STRING "SDL2 root" )
+        INCLUDE_DIRECTORIES( "${SDL2_ROOT}/include" )
+        LINK_DIRECTORIES   ( "${SDL2_ROOT}/lib/x86" )
+        SET( FRAMEWORK_LIBS SDL2.lib )
+    ELSE()
+        MESSAGE("Unknown GL_FRAMEWORK: choose GLFW or SDL.")
+    ENDIF()
 
     SET( GLEW_ROOT "${LIBS_HOME}/glew" )
     INCLUDE_DIRECTORIES( "${GLEW_ROOT}/include" )
     LINK_DIRECTORIES   ( "${GLEW_ROOT}/lib" )
-    #ADD_DEFINITIONS( -DGLEW_STATIC )
-    
-    SET( OCULUSSDK_ROOT "${LIBS_HOME}/OculusSDK-0.2.2" )
+    ADD_DEFINITIONS( -DGLEW_STATIC )
+
+    SET( OCULUSSDK_ROOT "${LIBS_HOME}/OculusSDK" )
     INCLUDE_DIRECTORIES( "${OCULUSSDK_ROOT}/LibOVR/Include" )
     INCLUDE_DIRECTORIES( "${OCULUSSDK_ROOT}/LibOVR/Src" )
-    LINK_DIRECTORIES   ( "${OCULUSSDK_ROOT}/LibOVR/Lib/Win32" )
+    LINK_DIRECTORIES   ( "${OCULUSSDK_ROOT}/LibOVR/Lib/Win32/VS2010" )
+    SET( OVR_LIBS optimized libovr.lib debug libovrd.lib )
+    ADD_DEFINITIONS( -DOVR_OS_WIN32 )
+
+    IF( USE_ANTTWEAKBAR )
+        MESSAGE("Using AntTweakBar.")
+        SET( ANTTWEAKBAR_ROOT "${LIBS_HOME}/AntTweakBar_116/AntTweakBar" )
+        INCLUDE_DIRECTORIES( "${ANTTWEAKBAR_ROOT}/include" )
+        LINK_DIRECTORIES   ( "${ANTTWEAKBAR_ROOT}/lib" )
+        SET( ANT_LIBS AntTweakBar.lib )
+        ADD_DEFINITIONS( -DUSE_ANTTWEAKBAR )
+    ENDIF( USE_ANTTWEAKBAR )
+
+    # OVR SDK 0.4.0 apparently introduced a new library dependency on atlsd.lib
+    SET( WINDDK_ROOT "C:/WinDDK/7600.16385.1" )
+    INCLUDE_DIRECTORIES( "${WINDDK_ROOT}/inc/atl71" )
+    LINK_DIRECTORIES   ( "${WINDDK_ROOT}/lib/ATL/i386" )
 
     SET( PLATFORM_LIBS
-        glfw.lib
-        opengl32.lib
-        glu32.lib
-        glew32.lib 
-        libovr.lib
-        winmm.lib
+        ${FRAMEWORK_LIBS}
+        opengl32.lib glu32.lib glew32s.lib
+        ${OVR_LIBS}
+        Winmm.lib
+        ws2_32.lib
+        ${ANT_LIBS}
         )
 
-    SOURCE_GROUP( "Build" FILES CMakeLists.txt )
+    ADD_DEFINITIONS( /W4 )
+
+ELSEIF( APPLE )
+    ADD_DEFINITIONS( -D_MACOS )
+
+    SET(CMAKE_CXX_FLAGS "-fno-rtti")
+
+    INCLUDE_DIRECTORIES ( /System/Library/Frameworks )
+    FIND_LIBRARY(COCOA_LIBRARY Cocoa)
+    FIND_LIBRARY(IOKIT_LIBRARY IOKit)
+    FIND_LIBRARY(GLUT_LIBRARY GLUT )
+    FIND_LIBRARY(OpenGL_LIBRARY OpenGL )
+    MARK_AS_ADVANCED (COCOA_LIBRARY
+                      GLUT_LIBRARY
+                      IOKIT_LIBRARY
+                      OpenGL_LIBRARY)
+    INCLUDE_DIRECTORIES( "/opt/local/include/" )
+    LINK_DIRECTORIES   ( "/opt/local/lib" )
+
+    SET( LIBS_HOME "~/Development/" )
+
+    SET( GLFW3_ROOT "${LIBS_HOME}/glfw-3.0.3/" )
+    INCLUDE_DIRECTORIES( "${GLFW3_ROOT}/include" )
+    LINK_DIRECTORIES   ( "${GLFW3_ROOT}/lib" )
+
+    MESSAGE("Building against OVR SDK 0.3.2 - Mac version not available as of release." )
+    SET( OCULUSSDK_ROOT "${LIBS_HOME}/OculusSDK-0.3.2" )
+    INCLUDE_DIRECTORIES( "${OCULUSSDK_ROOT}/LibOVR/Include" )
+    INCLUDE_DIRECTORIES( "${OCULUSSDK_ROOT}/LibOVR/Src" )
+    LINK_DIRECTORIES   ( "${OCULUSSDK_ROOT}/LibOVR/Lib/MacOS/Debug/" )
+    ADD_DEFINITIONS( -DOVR_OS_MAC )
+
+    FIND_LIBRARY(COCOA_LIBRARY Cocoa)
+    FIND_LIBRARY(IOKIT_LIBRARY IOKit)
+
+    MARK_AS_ADVANCED (COCOA_LIBRARY
+                      IOKIT_LIBRARY
+                      )
+    # Todo - build OVR with RTTI suppo
+    SET(CMAKE_CXX_FLAGS "-fno-rtti")
+
+    IF( USE_ANTTWEAKBAR )
+        MESSAGE("Using AntTweakBar.")
+        SET( ANT_LIBS -lAntTweakBar )
+        ADD_DEFINITIONS( -DUSE_ANTTWEAKBAR )
+    ENDIF( USE_ANTTWEAKBAR )
+
+    #SET( PLATFORM_LIBS libovr.a ${COCOA_LIBRARY} ${IOKIT_LIBRARY} )
+    SET( PLATFORM_LIBS
+        ${FRAMEWORK_LIBS}
+        ${COCOA_LIBRARY}
+        ${IOKIT_LIBRARY}
+        ${GLUT_LIBRARY}
+        ${OpenGL_LIBRARY}
+        -lGLEW
+        -lglfw
+        -lovr
+        ${ANT_LIBS}
+        )
+        # TODO: SDL2 or glfw
 
 ELSEIF( UNIX )
     ADD_DEFINITIONS( -D_LINUX )
     SET( LIBS_HOME "~/lib" )
     
-    SET( OCULUSSDK_ROOT "${LIBS_HOME}/OculusSDK" )
+    ADD_DEFINITIONS( -D_DEBUG )
+
+    SET( GLM_ROOT "${LIBS_HOME}/glm-0.9.5.4/glm" )
+    INCLUDE_DIRECTORIES( "${GLM_ROOT}" )
+    ADD_DEFINITIONS( -DGLM_FORCE_RADIANS )
+
+    IF( GL_FRAMEWORK STREQUAL "GLFW" )
+        MESSAGE("Using GLFW Framework.")
+        SET( FRAMEWORK_LIBS -lglfw3 )
+    ELSEIF( GL_FRAMEWORK STREQUAL "SDL" )
+        MESSAGE("Using SDL2 Framework.")
+        INCLUDE_DIRECTORIES( "/usr/local/include/SDL2" )
+        LINK_DIRECTORIES   ( "/usr/local/lib/x86" )
+        SET( FRAMEWORK_LIBS -lSDL2 )
+    ELSE()
+        MESSAGE("Unknown GL_FRAMEWORK: choose GLFW or SDL.")
+    ENDIF()
+
+    MESSAGE("Building against OVR SDK 0.3.2 - Linux version not available as of release." )
+    SET( OCULUSSDK_ROOT "${LIBS_HOME}/OculusSDK-0.3.2" )
     INCLUDE_DIRECTORIES( "${OCULUSSDK_ROOT}/LibOVR/Include" )
     INCLUDE_DIRECTORIES( "${OCULUSSDK_ROOT}/LibOVR/Src" )
-    #LINK_DIRECTORIES   ( "${OCULUSSDK_ROOT}/LibOVR/Lib/Linux/Debug/x86_64" )
-    LINK_DIRECTORIES   ( "${OCULUSSDK_ROOT}/LibOVR/Lib/Linux/Release/x86_64/" )
+    LINK_DIRECTORIES   ( "${OCULUSSDK_ROOT}/LibOVR/Lib/Linux/Debug/x86_64" )
+    ADD_DEFINITIONS( -DOVR_OS_LINUX )
+
+    IF( USE_ANTTWEAKBAR )
+        MESSAGE("Using AntTweakBar.")
+        SET( ANTTWEAKBAR_ROOT "${LIBS_HOME}/AntTweakBar" )
+        INCLUDE_DIRECTORIES( "${ANTTWEAKBAR_ROOT}/include" )
+        LINK_DIRECTORIES   ( "${ANTTWEAKBAR_ROOT}/lib" )
+        SET( ANT_LIBS libAntTweakBar.a )
+        ADD_DEFINITIONS( -DUSE_ANTTWEAKBAR )
+    ENDIF( USE_ANTTWEAKBAR )
+
+    find_package(OpenGL REQUIRED)
+    find_package(GLUT REQUIRED)
+    include_directories( ${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS} )
 
     SET( PLATFORM_LIBS
         -lovr
         -lGLEW
-        -lGLU -lglfw
+        -lGL
+        -lGLU
+        ${FRAMEWORK_LIBS}
         -pthread
         -ludev
         -lrt
@@ -58,9 +191,9 @@ ELSEIF( UNIX )
         -lXrandr
         -lXxf86vm
         -lXi
+        -lX11
         ${ANT_LIBS}
         )
-
 ENDIF()
 
 
@@ -68,54 +201,38 @@ ENDIF()
 # Platform-independent section
 #
 FILE( GLOB_RECURSE UTIL_SOURCE_FILES
-    src/utils/*.cpp
-    src/utils/*.h
+    src/Util/*.cpp
+    src/Util/*.h
     )
 
-FILE( GLOB_RECURSE VECTORMATH_SOURCE_FILES
-    src/vectormath/*.cpp
-    src/vectormath/*.h
+FILE( GLOB_RECURSE APPSKELETON_SOURCE_FILES
+    src/AppSkeleton/*.cpp
+    src/AppSkeleton/*.h
     )
 
-FILE( GLOB_RECURSE OVRKILL_SOURCE_FILES
-    src/OVRkill/*.cpp
-    src/OVRkill/*.h
+FILE( GLOB_RECURSE SCENE_SOURCE_FILES
+    src/Scene/*.cpp
+    src/Scene/*.h
     )
 
-FILE( GLOB_RECURSE PANORAMA_SOURCE_FILES
-    src/Panorama/*.cpp
-    src/Panorama/*.h
-    )
+INCLUDE_DIRECTORIES("src/Util")
+INCLUDE_DIRECTORIES("src/Util/GL")
+INCLUDE_DIRECTORIES("src/AppSkeleton")
+INCLUDE_DIRECTORIES("src/Scene")
 
-FILE( GLOB_RECURSE JPEG_COMPRESSOR_SOURCE_FILES
-    src/jpeg-compressor/*.cpp
-    src/jpeg-compressor/*.h
-    )
+ADD_LIBRARY( Util        ${UTIL_SOURCE_FILES} )
+ADD_LIBRARY( AppSkeleton ${APPSKELETON_SOURCE_FILES} )
+ADD_LIBRARY( Scene       ${SCENE_SOURCE_FILES} )
 
-INCLUDE_DIRECTORIES("src")
-INCLUDE_DIRECTORIES("src/utils")
-INCLUDE_DIRECTORIES("src/utils/GL")
-INCLUDE_DIRECTORIES("src/vectormath")
-INCLUDE_DIRECTORIES("src/OVRkill")
-INCLUDE_DIRECTORIES("src/Panorama")
-INCLUDE_DIRECTORIES("src/jpeg-compressor")
-
-ADD_LIBRARY( VectorMath ${VECTORMATH_SOURCE_FILES} )
-ADD_LIBRARY( OVRkill    ${OVRKILL_SOURCE_FILES} )
-ADD_LIBRARY( Util       ${UTIL_SOURCE_FILES} )
-ADD_LIBRARY( Panorama   ${PANORAMA_SOURCE_FILES} )
-ADD_LIBRARY( Jpeg       ${JPEG_COMPRESSOR_SOURCE_FILES} )
-
-ADD_EXECUTABLE( ${PROJECT_NAME}
-    ${SOURCE_FILES}
-    src/skeleton/simple_glfw_skeleton.cpp
-    )
+IF( GL_FRAMEWORK STREQUAL "GLFW" )
+    ADD_EXECUTABLE( ${PROJECT_NAME} src/glfw_main.cpp )
+ELSEIF( GL_FRAMEWORK STREQUAL "SDL" )
+    ADD_EXECUTABLE( ${PROJECT_NAME} src/sdl_main.cpp )
+ENDIF()
 
 TARGET_LINK_LIBRARIES( ${PROJECT_NAME}
-    OVRkill
+    AppSkeleton
+    Scene
     Util
-    VectorMath
-    Panorama
-    Jpeg
     ${PLATFORM_LIBS}
     )
