@@ -255,7 +255,7 @@ void StereoPanoramaScene::_InitCylinderAttributes()
 
 void StereoPanoramaScene::initGL()
 {
-    m_basic.initProgram("basic");
+    m_basic.initProgram("basictex");
     m_basic.bindVAO();
     _InitCylinderAttributes();
     glBindVertexArray(0);
@@ -273,6 +273,13 @@ void StereoPanoramaScene::DrawScene(
 
         m_basic.bindVAO();
         glDisable(GL_CULL_FACE);
+
+        const bool left = true;
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, left ? m_panoTexL : m_panoTexR);
+        glUniform1i(m_basic.GetUniLoc("texImage"), 0);
+
+
         glDrawElements(GL_QUADS,
                        m_triCount,
                        GL_UNSIGNED_INT,

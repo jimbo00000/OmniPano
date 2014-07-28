@@ -95,6 +95,8 @@ void RiftAppSkeleton::initGL()
 
     // sensible initial value?
     allocateFBO(m_renderBuffer, 800, 600);
+
+    m_panoramaScene.LoadColorTextureFromOverUnderJpeg("../panos/AAABluebonnet-0-1_8-overunder-512.jpg");
 }
 
 
