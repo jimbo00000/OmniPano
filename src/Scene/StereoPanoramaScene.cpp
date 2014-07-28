@@ -274,11 +274,11 @@ void StereoPanoramaScene::DrawScene(
         m_basic.bindVAO();
         glDisable(GL_CULL_FACE);
 
-        const bool left = true;
+        const float tweak = glm::value_ptr(projection)[8];
+        const bool left = tweak < 0.0f;
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, left ? m_panoTexL : m_panoTexR);
         glUniform1i(m_basic.GetUniLoc("texImage"), 0);
-
 
         glDrawElements(GL_QUADS,
                        m_triCount,
