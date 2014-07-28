@@ -10,15 +10,141 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#include "jpgd.h"
+
 StereoPanoramaScene::StereoPanoramaScene()
 : m_basic()
 , m_triCount(0)
+, m_panoTexL(0)
+, m_panoTexR(0)
 {
 }
 
 StereoPanoramaScene::~StereoPanoramaScene()
 {
+    glDeleteTextures(1, &m_panoTexL);
+    glDeleteTextures(1, &m_panoTexR);
 }
+
+
+
+/// Call gluBuild2DMipmaps to create a texture from half the data buffer(over/under format)
+void UploadBoundTex(int width, int height, int comps, unsigned char* pData, bool isLeft, bool isOverUnder)
+{
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    GLint numChannels = 1;
+    GLenum format = GL_LUMINANCE;
+    if (comps == 3)
+    {
+        numChannels = 3;
+        format = GL_RGB;
+    }
+
+    const unsigned char* pDataStart = pData;
+    if (isOverUnder && !isLeft)
+    {
+        pDataStart += numChannels * width * height / 2;
+    }
+
+    GLsizei h = height;
+    if (isOverUnder)
+    {
+        h /= 2;
+    }
+    gluBuild2DMipmaps(
+        GL_TEXTURE_2D,
+        numChannels,
+        width,
+        h,
+        format,
+        GL_UNSIGNED_BYTE,
+        pDataStart);
+}
+
+/// Load image data from a Jpeg into texture.
+///@param pFilename Filename of the image to load(in over/under Jpeg format)
+void StereoPanoramaScene::LoadColorTextureFromOverUnderJpeg(const char* pFilename)
+{
+    if (pFilename == NULL)
+        return;
+
+    int width = 0;
+    int height = 0;
+    int comps = 3;
+    unsigned char* pData = jpgd::decompress_jpeg_image_from_file(
+        pFilename,
+        &width,
+        &height,
+        &comps,
+        comps);
+
+    glDeleteTextures(1, &m_panoTexL);
+    glDeleteTextures(1, &m_panoTexR);
+
+    glGenTextures(1, &m_panoTexL);
+    glBindTexture(GL_TEXTURE_2D, m_panoTexL);
+    UploadBoundTex(width, height, comps, pData, true, true);
+
+    glGenTextures(1, &m_panoTexR);
+    glBindTexture(GL_TEXTURE_2D, m_panoTexR);
+    UploadBoundTex(width, height, comps, pData, false, true);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    delete [] pData;
+}
+
+void StereoPanoramaScene::LoadColorTextureFromJpegPair(const char* pFileL, const char* pFileR)
+{
+    if (pFileL == NULL)
+        return;
+    if (pFileR == NULL)
+        return;
+
+    {
+        int width = 0;
+        int height = 0;
+        int comps = 1;
+        unsigned char* pData = jpgd::decompress_jpeg_image_from_file(
+            pFileL,
+            &width,
+            &height,
+            &comps,
+            comps);
+
+        glDeleteTextures(1, &m_panoTexL);
+
+        glGenTextures(1, &m_panoTexL);
+        glBindTexture(GL_TEXTURE_2D, m_panoTexL);
+        UploadBoundTex(width, height, comps, pData, true, false);
+        delete [] pData;
+    }
+
+    {
+        int width = 0;
+        int height = 0;
+        int comps = 1;
+        unsigned char* pData = jpgd::decompress_jpeg_image_from_file(
+            pFileR,
+            &width,
+            &height,
+            &comps,
+            comps);
+
+        glDeleteTextures(1, &m_panoTexR);
+        glGenTextures(1, &m_panoTexR);
+        glBindTexture(GL_TEXTURE_2D, m_panoTexR);
+        UploadBoundTex(width, height, comps, pData, false, false);
+        delete [] pData;
+    }
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 
 ///@brief Form a cylindrical strip of quads, 4 verts per face.
 void ConstructCylinderGeometry(

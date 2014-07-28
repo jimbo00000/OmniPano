@@ -22,6 +22,9 @@ public:
     StereoPanoramaScene();
     virtual ~StereoPanoramaScene();
 
+    virtual void LoadColorTextureFromOverUnderJpeg(const char* pFilename);
+    virtual void LoadColorTextureFromJpegPair(const char* pFileL, const char* pFileR);
+
     virtual void initGL();
     virtual void timestep(float dt);
     virtual void RenderForOneEye(const float* pMview, const float* pPersp, const float* pObject=NULL) const;
@@ -35,6 +38,8 @@ protected:
 
     ShaderWithVariables m_basic;
     GLuint m_triCount;
+    GLuint m_panoTexL;
+    GLuint m_panoTexR;
 
 private: // Disallow copy ctor and assignment operator
     StereoPanoramaScene(const StereoPanoramaScene&);

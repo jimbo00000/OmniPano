@@ -215,14 +215,21 @@ FILE( GLOB_RECURSE SCENE_SOURCE_FILES
     src/Scene/*.h
     )
 
+FILE( GLOB_RECURSE JPEG_COMPRESSOR_SOURCE_FILES
+    src/jpeg-compressor/*.cpp
+    src/jpeg-compressor/*.h
+    )
+
 INCLUDE_DIRECTORIES("src/Util")
 INCLUDE_DIRECTORIES("src/Util/GL")
 INCLUDE_DIRECTORIES("src/AppSkeleton")
 INCLUDE_DIRECTORIES("src/Scene")
+INCLUDE_DIRECTORIES("src/jpeg-compressor")
 
 ADD_LIBRARY( Util        ${UTIL_SOURCE_FILES} )
 ADD_LIBRARY( AppSkeleton ${APPSKELETON_SOURCE_FILES} )
 ADD_LIBRARY( Scene       ${SCENE_SOURCE_FILES} )
+ADD_LIBRARY( Jpeg ${JPEG_COMPRESSOR_SOURCE_FILES} )
 
 IF( GL_FRAMEWORK STREQUAL "GLFW" )
     ADD_EXECUTABLE( ${PROJECT_NAME} src/glfw_main.cpp )
@@ -234,5 +241,6 @@ TARGET_LINK_LIBRARIES( ${PROJECT_NAME}
     AppSkeleton
     Scene
     Util
+    Jpeg
     ${PLATFORM_LIBS}
     )
