@@ -18,7 +18,6 @@
 #include <OVR_CAPI_GL.h>
 
 #include "FBO.h"
-#include "Scene.h"
 #include "StereoPanoramaScene.h"
 
 ///@brief Encapsulates as much of the VR viewer state as possible,
@@ -84,7 +83,6 @@ protected:
 
 public:
     // This public section is for exposing state variables to AntTweakBar
-    Scene m_scene;
     StereoPanoramaScene m_panoramaScene;
 
 protected:

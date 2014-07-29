@@ -23,7 +23,6 @@
 
 RiftAppSkeleton::RiftAppSkeleton()
 : m_Hmd(NULL)
-, m_scene()
 , m_panoramaScene()
 , m_scenes()
 , m_fboScale(1.0f)
