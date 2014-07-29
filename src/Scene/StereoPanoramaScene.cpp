@@ -31,6 +31,7 @@ StereoPanoramaScene::~StereoPanoramaScene()
 /// Call gluBuild2DMipmaps to create a texture from half the data buffer(over/under format)
 void UploadBoundTex(int width, int height, int comps, unsigned char* pData, bool isLeft, bool isOverUnder)
 {
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
