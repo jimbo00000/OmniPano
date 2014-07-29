@@ -4,7 +4,9 @@
 #include <GL/glew.h>
 
 #if defined(_WIN32)
-#  include <Windows.h>
+#  define WINDOWS_LEAN_AND_MEAN
+#  define NOMINMAX
+#  include <windows.h>
 #  define GLFW_EXPOSE_NATIVE_WIN32
 #  define GLFW_EXPOSE_NATIVE_WGL
 #elif defined(__linux__)
@@ -12,6 +14,12 @@
 #  include <X11/extensions/Xrandr.h>
 #  define GLFW_EXPOSE_NATIVE_X11
 #  define GLFW_EXPOSE_NATIVE_GLX
+#endif
+
+#ifdef _WIN32
+# include "win/dirent.h"
+#else
+# include <dirent.h>
 #endif
 
 #include <GLFW/glfw3.h>
@@ -29,6 +37,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sstream>
+#include <iostream>
 
 #include "RiftAppSkeleton.h"
 #include "RenderingMode.h"
@@ -55,6 +64,8 @@ int g_auxWindow_w = 1280 / 2;
 int g_auxWindow_h = 800;
 
 int g_joystickIdx = -1;
+
+std::vector<std::string> g_panos;
 
 #ifdef USE_ANTTWEAKBAR
 TwBar* g_pTweakbar = NULL;
@@ -329,6 +340,11 @@ static void TW_CALL GetDisplayFPS(void *value, void *clientData)
     *(unsigned int *)value = static_cast<unsigned int>(g_fps.GetFPS());
 }
 
+static void TW_CALL ChoosePanoCB(void* pArg)
+{
+    const std::string* pStr = reinterpret_cast<const std::string*>(pArg);
+    g_app.m_panoramaScene.LoadColorTextureFromOverUnderJpeg(pStr->c_str());
+}
 void InitializeBar()
 {
     ///@note Bad size errors will be thrown if this is not called at init
@@ -342,8 +358,13 @@ void InitializeBar()
     TwAddButton(g_pTweakbar, "Enable VSync", EnableVSyncCB, NULL, " group='Performance' ");
     TwAddButton(g_pTweakbar, "Adaptive VSync", AdaptiveVSyncCB, NULL, " group='Performance' ");
 
-    TwAddVarRW(g_pTweakbar, "Draw PanoramaScene", TW_TYPE_BOOLCPP, &g_app.m_panoramaScene.m_bDraw,
-               "  group='PanoramaScene' ");
+    for (std::vector<std::string>::const_iterator it = g_panos.begin();
+        it != g_panos.end();
+        ++it)
+    {
+        const std::string& p = *it;
+        TwAddButton(g_pTweakbar, p.c_str(), ChoosePanoCB, (void*)&p, " group='PanoramaScene' ");
+    }
 }
 #endif
 
@@ -403,6 +424,62 @@ void resize_Aux(GLFWwindow* pWindow, int w, int h)
 #endif
 }
 
+
+///@brief Scan a directory for jpg files to display and return the list of filenames.
+std::vector<std::string> GetPanoFileList(const std::string& datadir)
+{
+    std::vector<std::string> panoFiles;
+
+    // Thank you Toni Ronkko for the dirent Windows compatibility layer.
+    // http://stackoverflow.com/questions/612097/how-can-i-get-a-list-of-files-in-a-directory-using-c-or-c
+    DIR* dir;
+    struct dirent* ent;
+    if ((dir = opendir(datadir.c_str())) != NULL)
+    {
+        while ((ent = readdir(dir)) != NULL)
+        {
+            std::string filename(ent->d_name);
+
+            // Check file suffixes
+            if (filename.length() > 4)
+            {
+                std::string suffix = filename.substr(filename.length()-4, 4);
+                if (
+                    !suffix.compare(".jpg") ||
+                    !suffix.compare(".JPG")
+                    )
+                {
+                    printf("%s\n", filename.c_str());
+                    std::string fullname = datadir;
+                    fullname.append(filename);
+                    panoFiles.push_back(fullname);
+                }
+            }
+        }
+        closedir(dir);
+    }
+
+    return panoFiles;
+}
+
+///@brief Find stereo panoramas in a directory, checking parent directories
+/// up to 5 levels up.
+std::vector<std::string> FindPanos()
+{
+    std::string datadir = "panos/";
+    const std::string originalDatadir = datadir;
+    std::vector<std::string> panoFiles = GetPanoFileList(datadir);
+    const int outdepth = 5;
+    for (int i=0; i<outdepth; ++i)
+    {
+        if (panoFiles.empty())
+        {
+            datadir = "../" + datadir;
+            panoFiles = GetPanoFileList(datadir);
+        }
+    }
+    return panoFiles;
+}
 
 
 
@@ -600,6 +677,30 @@ void destroyAuxiliaryWindow(GLFWwindow* pAuxWindow)
 int main(void)
 {
     ///@todo Command line options
+    g_panos = FindPanos();
+    if (g_panos.empty())
+    {
+        //running = GL_FALSE;
+        std::ostringstream oss;
+        oss << std::endl
+            << "No files found, so we are exiting."
+            << std::endl
+            << "Throw some stereo panoramas in there!"
+            << std::endl;
+
+        std::cerr << oss.str().c_str();
+        LOG_INFO("%s", oss.str().c_str());
+
+#ifdef _WIN32
+        MessageBox(0, oss.str().c_str(), "No pano files found", 0);
+        ///@note This will prevent console output from disappearing with the terminal on Windows,
+        /// but makes for an unpleasant experience when run with the Rift on.
+        //char ch;
+        //std::cin >> ch;
+#endif
+
+        exit(0);
+    }
 
     GLFWwindow* l_Window = NULL;
 

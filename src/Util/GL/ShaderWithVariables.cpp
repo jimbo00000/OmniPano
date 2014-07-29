@@ -25,11 +25,17 @@ ShaderWithVariables::~ShaderWithVariables()
 
 void ShaderWithVariables::destroy()
 {
-    glDeleteProgram(m_program);
-    m_program = 0;
+    if (m_program != 0)
+    {
+        glDeleteProgram(m_program);
+        m_program = 0;
+    }
 
-    glDeleteVertexArrays(1, &m_vao);
-    m_vao = 0;
+    if (m_vao != 0)
+    {
+        glDeleteVertexArrays(1, &m_vao);
+        m_vao = 0;
+    }
 
     for (std::map<std::string, GLuint>::iterator it = m_vbos.begin();
         it != m_vbos.end();

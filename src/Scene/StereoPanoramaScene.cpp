@@ -85,6 +85,8 @@ void StereoPanoramaScene::LoadColorTextureFromOverUnderJpeg(const char* pFilenam
 
     glDeleteTextures(1, &m_panoTexL);
     glDeleteTextures(1, &m_panoTexR);
+    m_panoTexL = 0;
+    m_panoTexR = 0;
 
     glGenTextures(1, &m_panoTexL);
     glBindTexture(GL_TEXTURE_2D, m_panoTexL);
