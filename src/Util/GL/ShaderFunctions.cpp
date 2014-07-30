@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include <string>
 #include <iostream>
@@ -31,12 +32,12 @@ void printShaderInfoLog(GLuint obj)
     int infologLength = 0;
     int charsWritten  = 0;
     char *infoLog;
-    glGetShaderiv(obj, GL_INFO_LOG_LENGTH,&infologLength);
+    glGetShaderiv(obj, GL_INFO_LOG_LENGTH, &infologLength);
     if (infologLength > 1)
     {
         infoLog = new char[infologLength];
         glGetShaderInfoLog(obj, infologLength, &charsWritten, infoLog);
-        std::cout << infoLog << std::endl;
+        std::cout << std::endl << infoLog << std::endl;
         delete [] infoLog;
     }
     else if (obj == 0)
@@ -53,12 +54,12 @@ void printProgramInfoLog(GLuint obj)
     int infologLength = 0;
     int charsWritten  = 0;
     char *infoLog;
-    glGetProgramiv(obj, GL_INFO_LOG_LENGTH,&infologLength);
+    glGetProgramiv(obj, GL_INFO_LOG_LENGTH, &infologLength);
     if (infologLength > 1)
     {
         infoLog = new char[infologLength];
         glGetProgramInfoLog(obj, infologLength, &charsWritten, infoLog);
-        std::cout << infoLog << std::endl;
+        std::cout << std::endl << infoLog << std::endl;
         delete [] infoLog;
     }
     else std::cout << "OK ";
@@ -193,6 +194,12 @@ GLuint makeShaderFromSource(
 
     glCompileShader(vertSrc);
     glCompileShader(fragSrc);
+
+    GLint success = 0;
+    glGetShaderiv(vertSrc, GL_COMPILE_STATUS, &success);
+    assert(success == GL_TRUE);
+    glGetShaderiv(fragSrc, GL_COMPILE_STATUS, &success);
+    assert(success == GL_TRUE);
 
     glAttachShader(program, vertSrc);
     glAttachShader(program, fragSrc);
