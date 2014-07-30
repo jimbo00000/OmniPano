@@ -65,7 +65,12 @@ int g_auxWindow_h = 800;
 
 int g_joystickIdx = -1;
 
-std::vector<std::string> g_panos;
+struct pano
+{
+    std::string filename;
+};
+
+std::vector<pano> g_panos;
 
 #ifdef USE_ANTTWEAKBAR
 TwBar* g_pTweakbar = NULL;
@@ -358,12 +363,13 @@ void InitializeBar()
     TwAddButton(g_pTweakbar, "Enable VSync", EnableVSyncCB, NULL, " group='Performance' ");
     TwAddButton(g_pTweakbar, "Adaptive VSync", AdaptiveVSyncCB, NULL, " group='Performance' ");
 
-    for (std::vector<std::string>::const_iterator it = g_panos.begin();
+    for (std::vector<pano>::const_iterator it = g_panos.begin();
         it != g_panos.end();
         ++it)
     {
-        const std::string& p = *it;
-        TwAddButton(g_pTweakbar, p.c_str(), ChoosePanoCB, (void*)&p, " group='PanoramaScene' ");
+        const pano& p = *it;
+        const std::string& name = p.filename;
+        TwAddButton(g_pTweakbar, name.c_str(), ChoosePanoCB, (void*)&name, " group='PanoramaScene' ");
     }
 }
 #endif
@@ -426,9 +432,9 @@ void resize_Aux(GLFWwindow* pWindow, int w, int h)
 
 
 ///@brief Scan a directory for jpg files to display and return the list of filenames.
-std::vector<std::string> GetPanoFileList(const std::string& datadir)
+std::vector<pano> GetPanoFileList(const std::string& datadir)
 {
-    std::vector<std::string> panoFiles;
+    std::vector<pano> panoFiles;
 
     // Thank you Toni Ronkko for the dirent Windows compatibility layer.
     // http://stackoverflow.com/questions/612097/how-can-i-get-a-list-of-files-in-a-directory-using-c-or-c
@@ -452,7 +458,10 @@ std::vector<std::string> GetPanoFileList(const std::string& datadir)
                     printf("%s\n", filename.c_str());
                     std::string fullname = datadir;
                     fullname.append(filename);
-                    panoFiles.push_back(fullname);
+
+                    pano p;
+                    p.filename = fullname;
+                    panoFiles.push_back(p);
                 }
             }
         }
@@ -464,11 +473,11 @@ std::vector<std::string> GetPanoFileList(const std::string& datadir)
 
 ///@brief Find stereo panoramas in a directory, checking parent directories
 /// up to 5 levels up.
-std::vector<std::string> FindPanos()
+std::vector<pano> FindPanos()
 {
     std::string datadir = "panos/";
     const std::string originalDatadir = datadir;
-    std::vector<std::string> panoFiles = GetPanoFileList(datadir);
+    std::vector<pano> panoFiles = GetPanoFileList(datadir);
     const int outdepth = 5;
     for (int i=0; i<outdepth; ++i)
     {
