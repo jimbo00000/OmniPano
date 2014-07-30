@@ -277,7 +277,7 @@ void StereoPanoramaScene::_InitCylinderAttributes()
 
 void StereoPanoramaScene::initGL()
 {
-    m_basic.initProgram("basictex");
+    m_basic.initProgram("pano");
     m_basic.bindVAO();
     _InitCylinderAttributes();
     glBindVertexArray(0);
