@@ -11,15 +11,16 @@ uniform int useSphereGeometry;
 
 void main()
 {
+    vec4 vPos = vPosition;
     vfTex = vTex.xy;
 
     if (useSphereGeometry == 1)
     {
         float x = vTex.y - 0.5;
         float sphereFactor = 2.0 * sqrt(0.25 - abs(x*x));
-        vPosition.x *= sphereFactor;
-        vPosition.z *= sphereFactor;
+        vPos.x *= sphereFactor;
+        vPos.z *= sphereFactor;
     }
 
-    gl_Position = prmtx * mvmtx * vPosition;
+    gl_Position = prmtx * mvmtx * vPos;
 }
