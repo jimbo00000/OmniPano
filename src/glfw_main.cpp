@@ -65,9 +65,16 @@ int g_auxWindow_h = 800;
 
 int g_joystickIdx = -1;
 
+enum panoType
+{
+    Mono = 0,
+    StereoOverUnder = 1,
+};
+
 struct pano
 {
     std::string filename;
+    panoType type;
 };
 
 std::vector<pano> g_panos;
@@ -347,8 +354,19 @@ static void TW_CALL GetDisplayFPS(void *value, void *clientData)
 
 static void TW_CALL ChoosePanoCB(void* pArg)
 {
-    const std::string* pStr = reinterpret_cast<const std::string*>(pArg);
-    g_app.m_panoramaScene.LoadStereoPanoFromOverUnderJpeg(pStr->c_str());
+    const pano* pPano = reinterpret_cast<const pano*>(pArg);
+    if (pPano == NULL)
+        return;
+    const std::string& name = pPano->filename;
+
+    if (pPano->type == Mono)
+    {
+        g_app.m_panoramaScene.LoadMonoPanoFromJpeg(name.c_str());
+    }
+    else
+    {
+        g_app.m_panoramaScene.LoadStereoPanoFromOverUnderJpeg(name.c_str());
+    }
 }
 void InitializeBar()
 {
@@ -432,7 +450,7 @@ void resize_Aux(GLFWwindow* pWindow, int w, int h)
 
 
 ///@brief Scan a directory for jpg files to display and return the list of filenames.
-std::vector<pano> GetPanoFileList(const std::string& datadir)
+std::vector<pano> GetPanoFileList(const std::string& datadir, panoType type)
 {
     std::vector<pano> panoFiles;
 
@@ -461,6 +479,7 @@ std::vector<pano> GetPanoFileList(const std::string& datadir)
 
                     pano p;
                     p.filename = fullname;
+                    p.type = type;
                     panoFiles.push_back(p);
                 }
             }
@@ -473,20 +492,21 @@ std::vector<pano> GetPanoFileList(const std::string& datadir)
 
 ///@brief Find stereo panoramas in a directory, checking parent directories
 /// up to 5 levels up.
-std::vector<pano> FindPanos()
+std::vector<pano> FindPanos(const std::string dirName, panoType type)
 {
-    std::string datadir = "panos/";
-    const std::string originalDatadir = datadir;
-    std::vector<pano> panoFiles = GetPanoFileList(datadir);
+    std::string overunderdir = dirName;
+    const std::string originalDatadir = overunderdir;
+    std::vector<pano> panoFiles = GetPanoFileList(overunderdir, type);
     const int outdepth = 5;
     for (int i=0; i<outdepth; ++i)
     {
         if (panoFiles.empty())
         {
-            datadir = "../" + datadir;
-            panoFiles = GetPanoFileList(datadir);
+            overunderdir = "../" + overunderdir;
+            panoFiles = GetPanoFileList(overunderdir, type);
         }
     }
+
     return panoFiles;
 }
 
@@ -686,7 +706,10 @@ void destroyAuxiliaryWindow(GLFWwindow* pAuxWindow)
 int main(void)
 {
     ///@todo Command line options
-    g_panos = FindPanos();
+    g_panos = FindPanos("panos/", StereoOverUnder);
+    std::vector<pano> monoPanos = FindPanos("panos2d/", Mono);
+    g_panos.insert(g_panos.end(), monoPanos.begin(), monoPanos.end());
+
     if (g_panos.empty())
     {
         //running = GL_FALSE;

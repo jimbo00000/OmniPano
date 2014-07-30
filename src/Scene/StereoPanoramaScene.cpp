@@ -66,6 +66,36 @@ void UploadBoundTex(int width, int height, int comps, unsigned char* pData, bool
         pDataStart);
 }
 
+void StereoPanoramaScene::LoadMonoPanoFromJpeg(const char* pFilename)
+{
+    if (pFilename == NULL)
+        return;
+
+    int width = 0;
+    int height = 0;
+    int comps = 3;
+    unsigned char* pData = jpgd::decompress_jpeg_image_from_file(
+        pFilename,
+        &width,
+        &height,
+        &comps,
+        comps);
+
+    glDeleteTextures(1, &m_panoTexL);
+    glDeleteTextures(1, &m_panoTexR);
+    m_panoTexL = 0;
+    m_panoTexR = 0;
+
+    glGenTextures(1, &m_panoTexL);
+    glBindTexture(GL_TEXTURE_2D, m_panoTexL);
+    UploadBoundTex(width, height, comps, pData, true, false);
+    m_panoTexR = m_panoTexL;
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    delete [] pData;
+}
+
 /// Load image data from a Jpeg into texture.
 ///@param pFilename Filename of the image to load(in over/under Jpeg format)
 void StereoPanoramaScene::LoadStereoPanoFromOverUnderJpeg(const char* pFilename)
