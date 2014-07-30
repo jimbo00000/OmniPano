@@ -213,18 +213,7 @@ void ConstructCylinderGeometry(
             const float t = static_cast<float>(j) / static_cast<float>(stacks);
             const float h = (1-t)*hmin + t*hmax;
             xzvec.y = h;
-
-#if 1
-            // Scale radius by height with fattest part at y == 0.5
-            const float x = t - 0.5f;
-            const float sphereFactor = 2.0f * sqrt(0.25f - fabs(x*x));
-            glm::vec3 sphericalXzvec(xzvec);
-            sphericalXzvec.x *= sphereFactor;
-            sphericalXzvec.z *= sphereFactor;
-            verts.push_back(sphericalXzvec);
-#else
             verts.push_back(xzvec);
-#endif
 
             const float tscale = 1.0f;
             glm::vec2 c(
@@ -269,15 +258,15 @@ void StereoPanoramaScene::_InitCylinderAttributes()
     glBufferData(GL_ARRAY_BUFFER, verts.size()*sizeof(glm::vec3), &verts[0], GL_STATIC_DRAW);
     glVertexAttribPointer(m_basic.GetAttrLoc("vPosition"), 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
-    GLuint colVbo = 0;
-    glGenBuffers(1, &colVbo);
-    m_basic.AddVbo("vColor", colVbo);
-    glBindBuffer(GL_ARRAY_BUFFER, colVbo);
+    GLuint texVbo = 0;
+    glGenBuffers(1, &texVbo);
+    m_basic.AddVbo("vTex", texVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, texVbo);
     glBufferData(GL_ARRAY_BUFFER, cols.size()*sizeof(glm::vec2), &cols[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(m_basic.GetAttrLoc("vColor"), 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glVertexAttribPointer(m_basic.GetAttrLoc("vTex"), 2, GL_FLOAT, GL_FALSE, 0, NULL);
 
     glEnableVertexAttribArray(m_basic.GetAttrLoc("vPosition"));
-    glEnableVertexAttribArray(m_basic.GetAttrLoc("vColor"));
+    glEnableVertexAttribArray(m_basic.GetAttrLoc("vTex"));
 
     GLuint quadVbo = 0;
     glGenBuffers(1, &quadVbo);

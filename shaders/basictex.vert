@@ -1,15 +1,21 @@
 // basictex.vert
 
 attribute vec4 vPosition;
-attribute vec4 vColor;
+attribute vec4 vTex;
 
-varying vec3 vfColor;
+varying vec2 vfTex;
 
 uniform mat4 mvmtx;
 uniform mat4 prmtx;
 
 void main()
 {
-    vfColor = vColor.xyz;
+    vfTex = vTex.xy;
+
+    float x = vTex.y - 0.5;
+    float sphereFactor = 2.0 * sqrt(0.25 - abs(x*x));
+    vPosition.x *= sphereFactor;
+    vPosition.z *= sphereFactor;
+
     gl_Position = prmtx * mvmtx * vPosition;
 }
