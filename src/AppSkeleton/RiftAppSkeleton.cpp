@@ -453,7 +453,7 @@ void RiftAppSkeleton::timestep(float dt)
 void RiftAppSkeleton::_drawSceneMono() const
 {
     _resetGLState();
-    glClearColor(0.8f, 0.3f, 0.4f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     const int w = m_Cfg.OGL.Header.RTSize.w;
@@ -547,7 +547,7 @@ void RiftAppSkeleton::display_stereo_undistorted() //const
 
     bindFBO(m_renderBuffer, m_fboScale);
 
-    glClearColor(0.8f, 0.3f, 0.4f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++)
@@ -630,7 +630,7 @@ void RiftAppSkeleton::display_sdk() //const
 
     bindFBO(m_renderBuffer);
 
-    glClearColor(0.8f, 0.3f, 0.4f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // For passing to EndFrame once rendering is done
@@ -699,7 +699,7 @@ void RiftAppSkeleton::display_client() //const
 
     bindFBO(m_renderBuffer, m_fboScale);
 
-    glClearColor(0.8f, 0.3f, 0.4f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++)
