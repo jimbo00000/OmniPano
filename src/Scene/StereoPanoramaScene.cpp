@@ -68,7 +68,7 @@ void UploadBoundTex(int width, int height, int comps, unsigned char* pData, bool
 
 /// Load image data from a Jpeg into texture.
 ///@param pFilename Filename of the image to load(in over/under Jpeg format)
-void StereoPanoramaScene::LoadColorTextureFromOverUnderJpeg(const char* pFilename)
+void StereoPanoramaScene::LoadStereoPanoFromOverUnderJpeg(const char* pFilename)
 {
     if (pFilename == NULL)
         return;

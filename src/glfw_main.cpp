@@ -343,7 +343,7 @@ static void TW_CALL GetDisplayFPS(void *value, void *clientData)
 static void TW_CALL ChoosePanoCB(void* pArg)
 {
     const std::string* pStr = reinterpret_cast<const std::string*>(pArg);
-    g_app.m_panoramaScene.LoadColorTextureFromOverUnderJpeg(pStr->c_str());
+    g_app.m_panoramaScene.LoadStereoPanoFromOverUnderJpeg(pStr->c_str());
 }
 void InitializeBar()
 {

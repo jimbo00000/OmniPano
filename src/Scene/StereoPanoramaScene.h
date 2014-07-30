@@ -22,7 +22,8 @@ public:
     StereoPanoramaScene();
     virtual ~StereoPanoramaScene();
 
-    virtual void LoadColorTextureFromOverUnderJpeg(const char* pFilename);
+    //virtual void LoadMonoPanoFromJpeg(const char* pFilename);
+    virtual void LoadStereoPanoFromOverUnderJpeg(const char* pFilename);
     virtual void LoadColorTextureFromJpegPair(const char* pFileL, const char* pFileR);
 
     virtual void initGL();
