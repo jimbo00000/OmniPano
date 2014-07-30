@@ -17,6 +17,7 @@ StereoPanoramaScene::StereoPanoramaScene()
 , m_triCount(0)
 , m_panoTexL(0)
 , m_panoTexR(0)
+, m_useSphericalGeometry(false)
 {
 }
 
@@ -91,6 +92,8 @@ void StereoPanoramaScene::LoadMonoPanoFromJpeg(const char* pFilename)
     UploadBoundTex(width, height, comps, pData, true, false);
     m_panoTexR = m_panoTexL;
 
+    m_useSphericalGeometry = false;
+
     glBindTexture(GL_TEXTURE_2D, 0);
 
     delete [] pData;
@@ -125,6 +128,8 @@ void StereoPanoramaScene::LoadStereoPanoFromOverUnderJpeg(const char* pFilename)
     glGenTextures(1, &m_panoTexR);
     glBindTexture(GL_TEXTURE_2D, m_panoTexR);
     UploadBoundTex(width, height, comps, pData, false, true);
+
+    m_useSphericalGeometry = true;
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -301,6 +306,8 @@ void StereoPanoramaScene::DrawScene(
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, left ? m_panoTexL : m_panoTexR);
         glUniform1i(m_basic.GetUniLoc("texImage"), 0);
+
+        glUniform1i(m_basic.GetUniLoc("useSphereGeometry"), m_useSphericalGeometry ? 1 : 0);
 
         glDrawElements(GL_QUADS,
                        m_triCount,

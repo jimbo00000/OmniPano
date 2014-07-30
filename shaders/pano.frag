@@ -1,4 +1,4 @@
-// basictex.frag
+// pano.frag
 
 varying vec2 vfTex;
 

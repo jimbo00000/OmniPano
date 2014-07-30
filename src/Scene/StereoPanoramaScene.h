@@ -41,6 +41,7 @@ protected:
     GLuint m_triCount;
     GLuint m_panoTexL;
     GLuint m_panoTexR;
+    bool m_useSphericalGeometry;
 
 private: // Disallow copy ctor and assignment operator
     StereoPanoramaScene(const StereoPanoramaScene&);
