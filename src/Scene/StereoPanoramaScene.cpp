@@ -13,7 +13,7 @@
 #include "jpgd.h"
 
 StereoPanoramaScene::StereoPanoramaScene()
-: m_basic()
+: m_panoShader()
 , m_triCount(0)
 , m_panoTexL(0)
 , m_panoTexR(0)
@@ -258,32 +258,32 @@ void StereoPanoramaScene::_InitCylinderAttributes()
 
     GLuint vertVbo = 0;
     glGenBuffers(1, &vertVbo);
-    m_basic.AddVbo("vPosition", vertVbo);
+    m_panoShader.AddVbo("vPosition", vertVbo);
     glBindBuffer(GL_ARRAY_BUFFER, vertVbo);
     glBufferData(GL_ARRAY_BUFFER, verts.size()*sizeof(glm::vec3), &verts[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(m_basic.GetAttrLoc("vPosition"), 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glVertexAttribPointer(m_panoShader.GetAttrLoc("vPosition"), 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
     GLuint texVbo = 0;
     glGenBuffers(1, &texVbo);
-    m_basic.AddVbo("vTex", texVbo);
+    m_panoShader.AddVbo("vTex", texVbo);
     glBindBuffer(GL_ARRAY_BUFFER, texVbo);
     glBufferData(GL_ARRAY_BUFFER, cols.size()*sizeof(glm::vec2), &cols[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(m_basic.GetAttrLoc("vTex"), 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glVertexAttribPointer(m_panoShader.GetAttrLoc("vTex"), 2, GL_FLOAT, GL_FALSE, 0, NULL);
 
-    glEnableVertexAttribArray(m_basic.GetAttrLoc("vPosition"));
-    glEnableVertexAttribArray(m_basic.GetAttrLoc("vTex"));
+    glEnableVertexAttribArray(m_panoShader.GetAttrLoc("vPosition"));
+    glEnableVertexAttribArray(m_panoShader.GetAttrLoc("vTex"));
 
     GLuint quadVbo = 0;
     glGenBuffers(1, &quadVbo);
-    m_basic.AddVbo("elements", quadVbo);
+    m_panoShader.AddVbo("elements", quadVbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quadVbo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, inds.size()*sizeof(GLuint), &inds[0], GL_STATIC_DRAW);
 }
 
 void StereoPanoramaScene::initGL()
 {
-    m_basic.initProgram("pano");
-    m_basic.bindVAO();
+    m_panoShader.initProgram("pano");
+    m_panoShader.bindVAO();
     _InitCylinderAttributes();
     glBindVertexArray(0);
 }
@@ -293,21 +293,21 @@ void StereoPanoramaScene::DrawScene(
     const glm::mat4& projection,
     const glm::mat4& object) const
 {
-    glUseProgram(m_basic.prog());
+    glUseProgram(m_panoShader.prog());
     {
-        glUniformMatrix4fv(m_basic.GetUniLoc("mvmtx"), 1, false, glm::value_ptr(modelview));
-        glUniformMatrix4fv(m_basic.GetUniLoc("prmtx"), 1, false, glm::value_ptr(projection));
+        glUniformMatrix4fv(m_panoShader.GetUniLoc("mvmtx"), 1, false, glm::value_ptr(modelview));
+        glUniformMatrix4fv(m_panoShader.GetUniLoc("prmtx"), 1, false, glm::value_ptr(projection));
 
-        m_basic.bindVAO();
+        m_panoShader.bindVAO();
         glDisable(GL_CULL_FACE);
 
         const float tweak = glm::value_ptr(projection)[8];
         const bool left = tweak < 0.0f;
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, left ? m_panoTexL : m_panoTexR);
-        glUniform1i(m_basic.GetUniLoc("texImage"), 0);
+        glUniform1i(m_panoShader.GetUniLoc("texImage"), 0);
 
-        glUniform1i(m_basic.GetUniLoc("useSphereGeometry"), m_useSphericalGeometry ? 1 : 0);
+        glUniform1i(m_panoShader.GetUniLoc("useSphereGeometry"), m_useSphericalGeometry ? 1 : 0);
 
         glDrawElements(GL_QUADS,
                        m_triCount,

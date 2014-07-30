@@ -37,7 +37,7 @@ protected:
         const glm::mat4& projection,
         const glm::mat4& object) const;
 
-    ShaderWithVariables m_basic;
+    ShaderWithVariables m_panoShader;
     GLuint m_triCount;
     GLuint m_panoTexL;
     GLuint m_panoTexR;
