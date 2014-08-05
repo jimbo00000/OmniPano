@@ -38,7 +38,7 @@ RiftAppSkeleton::RiftAppSkeleton()
 , m_mouseDeltaYaw(0.0f)
 {
     m_chassisPos.x = 0.0f;
-    m_chassisPos.y = 1.78f;
+    m_chassisPos.y = 0.0f;
     m_chassisPos.z = 0.0f;
 
     // Add as many scenes here as you like. They will share color and depth buffers,
@@ -656,6 +656,7 @@ void RiftAppSkeleton::display_sdk() //const
         OVR::Vector3f EyePos = m_chassisPos;
         OVR::Quatf l_Orientation = OVR::Quatf(l_EyePose.Orientation);
         OVR::Matrix4f l_ModelViewMatrix = OVR::Matrix4f(l_Orientation.Inverted())
+            * OVR::Matrix4f::Translation(l_EyePose.Position).Inverted()
             * OVR::Matrix4f::RotationY(m_chassisYaw)
             * OVR::Matrix4f::Translation(-EyePos);
 

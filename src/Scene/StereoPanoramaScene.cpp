@@ -191,8 +191,8 @@ void ConstructCylinderGeometry(
     std::vector<unsigned int>& inds,
     float coverage)
 {
-    const float height = 5.0f;
-    const float radius = 8.0f;
+    const float height = 3.0f;
+    const float radius = 4.0f;
     const int slices = 64;
     const int stacks = 32;
     const float fPi = static_cast<float>(M_PI);
