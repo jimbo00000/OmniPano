@@ -167,11 +167,11 @@ void RiftAppSkeleton::initVR()
         }
     }
 
-    // The RTSize fields are used by all rendering paths
+    // The BackBufferSize fields are used by all rendering paths
     ovrSizei l_ClientSize;
     l_ClientSize = getHmdResolution();
-    m_Cfg.OGL.Header.RTSize.w = l_ClientSize.w;
-    m_Cfg.OGL.Header.RTSize.h = l_ClientSize.h;
+    m_Cfg.OGL.Header.BackBufferSize.w = l_ClientSize.w;
+    m_Cfg.OGL.Header.BackBufferSize.h = l_ClientSize.h;
 
     ///@todo Do we need to choose here?
     ConfigureSDKRendering();
@@ -387,8 +387,8 @@ void RiftAppSkeleton::resize(int w, int h)
 {
     (void)w;
     (void)h;
-    //m_Cfg.OGL.Header.RTSize.w = w;
-    //m_Cfg.OGL.Header.RTSize.h = h;
+    //m_Cfg.OGL.Header.BackBufferSize.w = w;
+    //m_Cfg.OGL.Header.BackBufferSize.h = h;
 
     //const int l_DistortionCaps = ovrDistortionCap_Chromatic | ovrDistortionCap_TimeWarp;
     ///@warning this crashes the app. What are we supposed to do here???
@@ -456,8 +456,8 @@ void RiftAppSkeleton::_drawSceneMono() const
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    const int w = m_Cfg.OGL.Header.RTSize.w;
-    const int h = m_Cfg.OGL.Header.RTSize.h;
+    const int w = m_Cfg.OGL.Header.BackBufferSize.w;
+    const int h = m_Cfg.OGL.Header.BackBufferSize.h;
 
     const glm::vec3 EyePos(m_chassisPos.x, m_chassisPos.y, m_chassisPos.z);
     const glm::vec3 LookVec(0.0f, 0.0f, -1.0f);
@@ -492,8 +492,8 @@ void RiftAppSkeleton::_drawSceneMono() const
 
 void RiftAppSkeleton::display_raw() const
 {
-    const int w = m_Cfg.OGL.Header.RTSize.w;
-    const int h = m_Cfg.OGL.Header.RTSize.h;
+    const int w = m_Cfg.OGL.Header.BackBufferSize.w;
+    const int h = m_Cfg.OGL.Header.BackBufferSize.h;
     glViewport(0, 0, w, h);
 
     _drawSceneMono();
@@ -510,8 +510,8 @@ void RiftAppSkeleton::display_buffered(bool setViewport) const
 
     if (setViewport)
     {
-        const int w = m_Cfg.OGL.Header.RTSize.w;
-        const int h = m_Cfg.OGL.Header.RTSize.h;
+        const int w = m_Cfg.OGL.Header.BackBufferSize.w;
+        const int h = m_Cfg.OGL.Header.BackBufferSize.h;
         glViewport(0, 0, w, h);
     }
 
@@ -553,7 +553,7 @@ void RiftAppSkeleton::display_stereo_undistorted() //const
     for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++)
     {
         ovrEyeType eye = hmd->EyeRenderOrder[eyeIndex];
-        ovrPosef eyePose = ovrHmd_GetEyePose(hmd, eye);
+        ovrPosef eyePose = ovrHmd_GetHmdPosePerEye(hmd, eye);
 
         const ovrGLTexture& otex = l_EyeTexture[eye];
         const ovrRecti& rvp = otex.OGL.Header.RenderViewport;
@@ -573,7 +573,7 @@ void RiftAppSkeleton::display_stereo_undistorted() //const
         OVR::Matrix4f view = OVR::Matrix4f(orientation.Inverted())
             * OVR::Matrix4f::RotationY(m_chassisYaw)
             * OVR::Matrix4f::Translation(-EyePos);
-        OVR::Matrix4f eyeview = OVR::Matrix4f::Translation(m_EyeRenderDesc[eye].ViewAdjust) * view;
+        OVR::Matrix4f eyeview = OVR::Matrix4f::Translation(m_EyeRenderDesc[eye].HmdToEyeViewOffset) * view;
 
         _resetGLState();
 
@@ -640,7 +640,7 @@ void RiftAppSkeleton::display_sdk() //const
     for (int l_EyeIndex=0; l_EyeIndex<ovrEye_Count; l_EyeIndex++)
     {
         ovrEyeType l_Eye = hmd->EyeRenderOrder[l_EyeIndex];
-        ovrPosef l_EyePose = ovrHmd_GetEyePose(m_Hmd, l_Eye);
+        ovrPosef l_EyePose = ovrHmd_GetHmdPosePerEye(m_Hmd, l_Eye);
 
         glViewport(
             l_EyeTexture[l_Eye].OGL.Header.RenderViewport.Pos.x,
@@ -706,7 +706,7 @@ void RiftAppSkeleton::display_client() //const
     for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++)
     {
         ovrEyeType eye = hmd->EyeRenderOrder[eyeIndex];
-        ovrPosef eyePose = ovrHmd_GetEyePose(hmd, eye);
+        ovrPosef eyePose = ovrHmd_GetHmdPosePerEye(hmd, eye);
 
         const ovrGLTexture& otex = l_EyeTexture[eye];
         const ovrRecti& rvp = otex.OGL.Header.RenderViewport;
@@ -726,7 +726,7 @@ void RiftAppSkeleton::display_client() //const
         OVR::Matrix4f view = OVR::Matrix4f(orientation.Inverted())
             * OVR::Matrix4f::RotationY(m_chassisYaw)
             * OVR::Matrix4f::Translation(-EyePos);
-        OVR::Matrix4f eyeview = OVR::Matrix4f::Translation(m_EyeRenderDesc[eye].ViewAdjust) * view;
+        OVR::Matrix4f eyeview = OVR::Matrix4f::Translation(m_EyeRenderDesc[eye].HmdToEyeViewOffset) * view;
 
         _resetGLState();
 
@@ -749,8 +749,8 @@ void RiftAppSkeleton::display_client() //const
 
 
     // Set full viewport...?
-    const int w = m_Cfg.OGL.Header.RTSize.w;
-    const int h = m_Cfg.OGL.Header.RTSize.h;
+    const int w = m_Cfg.OGL.Header.BackBufferSize.w;
+    const int h = m_Cfg.OGL.Header.BackBufferSize.h;
     glViewport(0, 0, w, h);
 
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
